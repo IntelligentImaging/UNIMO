@@ -35,19 +35,16 @@ For multiple modality tests (in all baselines), we incorporated **three differen
 
 1. **CT Scans from the Lung CT Segmentation Challenge (LCTSC)(https://www.cancerimagingarchive.net/collection/lctsc/):**
    - **Dataset:** 60 CT scans
-   - **Source:** Lung CT Segmentation Challenge (LCTSC) 
    - **Image Details:** 4DCT or free-breathing CT images (slice thickness of 2.5 to 3 mm) from 60 patients across three institutions, divided into 36 training datasets, 12 off-site test datasets, and 12 live test datasets.
    - **Segmentation Labels:** Esophagus, heart, lungs, and spinal cord. For our study, we specifically extracted the left and right lungs for motion correction.
   
 2. **MedMNIST Datasets of Varying Organs (https://medmnist.com/):**
-   - **Dataset:** 200 images (slice thickness of 1 mm³)
-   - **Source:** MedMNIST datasets ~\cite{medmnistv1,medmnistv2}
+   - **Dataset:** 200 images 
    - **Image Details:** 3D CT scans of the adrenal gland, bone fractures, and 3D Magnetic Resonance Angiography (MRA) scans of blood vessel shapes in the brain, with manually-segmented labels.
    - **Preprocessing:** Applied Gaussian smoothing filter to all binary maps.
 
 3. **Brain Tumor MRI Scans from Brain Tumor Segmentation (BraTS) Challenge (https://www.kaggle.com/datasets/dschettler8845/brats-2021-task1):**
    - **Dataset:** 200 public T1-weighted brain scans of different subjects
-   - **Source:** Brain Tumor Segmentation (BraTS) challenge 2021 ~\cite{baid2021rsna,menze2014multimodal}
    - **Image Details:** 3D brain tumor MRI scans with tumor segmentation labels.
 
 All volumes from the aforementioned datasets were resampled to **96³**, with a voxel resolution of **1 mm³**, and underwent intensity normalization and bias field correction.
