@@ -15,6 +15,11 @@
 - **Python3 Tracking_trainer.py**
 The trained model and intermediate results will be saved in the ./saved_model and ./check_result directories. These directories contain some representative results. All parameters used in the training process are specified in the parameter.yml file.
 
+## Run testing
+
+- **Python3 Tracking_Testing_MultiModality.py.py or Testing_MultiModality.ipynb**
+Please check the testing procedure and visualized results in our [jupyter notebook for testing](https://github.com/IntelligentImaging/UNIMO/blob/main/Testing_MultiModality.ipynb).
+
 ## Data Description
 
 ### Single Modality Test
