@@ -15,6 +15,25 @@
 - **Python3 Tracking_trainer.py**
 The trained model and intermediate results will be saved in the ./saved_model and ./check_result directories. These directories contain some representative results. All parameters used in the training process are specified in the parameter.yml file.
 
+## Parameters for Joint learning
+- **optimizer**: Specifies the optimizer used for training the model (e.g., 'Adam').
+- **scheduler**: Specifies the learning rate scheduler (e.g., 'CosAn' for Cosine Annealing).
+- **loss**: Specifies the loss function used for training (e.g., 'L2' for Mean Squared Error, NCC for normalized cross-correlation).
+- **augmentation**: Boolean indicating whether data augmentation is enabled.
+- **reduced_dim**: Specifies the reduced dimensions (e.g., 16, 16, 16).
+- **lr**: Learning rate for both models (e.g., 1e-4).
+- **epochs**: Total number of epochs for training (e.g., 1000).
+- **batch_size**: Batch size for training (e.g., 1, 4, 8).
+- **weight_decay**: Weight decay parameter (e.g., 1e-5).
+
+### Parameters for Equations of Geometric Deformation Correction
+
+- **Euler_steps**: Number of steps for Euler integration (e.g., 5, 10).
+- **Alpha**: Alpha in shooting (e.g., 1.0, 2.0).
+- **Gamma**: Gamma in shooting (e.g., 1.0).
+- **Lpow**: The power of the Laplacian operator in shooting (e.g., 4.0, 6.0).
+- **Sigma**: The noise variance on the image matching term in LDDMM (e.g., 0.02, 0.03).
+
 ## Run testing
 
 - **Python3 Tracking_Testing_MultiModality.py.py or Testing_MultiModality.ipynb**
