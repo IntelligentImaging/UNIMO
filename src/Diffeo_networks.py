@@ -10,6 +10,26 @@ from .Diffeo_modelio import LoadableModel, store_config_args
 import lagomorph as lm
 fluid_params = [.1, 0.0, 0.1]
 metric = lm.FluidMetric(fluid_params)
+def Torchinterp(src, phiinv):  #src:[b, 1, 64, 64, 64]     phiinv: [b, 64, 64, 64, 3]
+    if(src.shape[-3]==1 and src.shape[-4]==1):
+        src = src.squeeze(-3)
+        phiinv = phiinv[...,0:2].squeeze(-4)
+    mode='bilinear'
+    shape = phiinv.shape[1:-1] 
+    # normalize deformation grid values to [-1, 1] 
+    for i in range(len(shape)):
+        phiinv[...,i] = 2 * (phiinv[...,i] / (shape[i] - 1) - 0.5)
+    return nnf.grid_sample(src, phiinv, align_corners=False,mode = mode, padding_mode= 'zeros')
+
+def get_grid2(imagesize, device):
+    size = (imagesize,imagesize,imagesize)
+    # create sampling grid
+    vectors = [torch.arange(0, s) for s in size]
+    grids = torch.meshgrid(vectors)
+    grid = torch.stack(grids)
+    grid = torch.unsqueeze(grid, 0)
+    grid = grid.to(device)
+    return grid
 class Unet(nn.Module):
     """
     A unet architecture. Layer features can be specified directly as a list of encoder and decoder
@@ -263,7 +283,7 @@ class DiffeoDense(LoadableModel):
             if not registration:
                 return (y_source, y_target, preint_flow) if self.bidir else (y_source, preint_flow)
             else:
-                return pos_flow, y_source
+                return pos_flow, y_source, pos_flow
 
         if (self.velocity_tag == 1):
             momentum = pos_flow

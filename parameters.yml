@@ -1,0 +1,30 @@
+study:
+        name: 'UNIMO'
+
+data:
+    predict: '3D'
+
+
+model:
+    network_type: 'Equivaraint'
+    optimizer: 'Adam'
+    scheduler: 'CosAn'
+    loss: 'L2'    ##'L2' or 'L1'
+    augmentation: False
+    deformable: True
+    shooting: 'SVF' # or "FLDDMM" 
+    reduced_xDim : 16
+    reduced_yDim : 16
+    reduced_zDim : 16
+
+solver:
+    lr: 0.000025
+    epochs: 1
+    batch_size: 1
+    weight_decay: 0.0001
+    def_weight: 0.5
+    Euler_steps: 5
+    Alpha: 2.0 
+    Gamma: 1.0
+    Lpow: 4  
+    Sigma: 0.02

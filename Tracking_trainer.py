@@ -12,7 +12,7 @@ import sys
 import random
 from torch.optim.lr_scheduler import CosineAnnealingLR
 from src.Diffeo_losses import NCC, MSE, Grad
-from src.Diffeo_networks import DiffeoDense  
+from src.Diffeo_networks import *  
 from SitkDataSet import SitkDataset as SData
 from src.tools import ReadFiles as rd
 from functools import partial
@@ -24,6 +24,7 @@ import SimpleITK as sitk
 import time
 from pytorch3d import transforms as pt3d_xfms
 import math
+from src.uEpdiff import Epdiff
 from src import SphereInterp as SI
 '''Read parameters by yaml'''
 para = rd.read_yaml('./parameters.yml')
@@ -162,12 +163,61 @@ for epoch in range(para.solver.epochs):
                                   align_corners=True)
         
         if (para.model.deformable == True):
-            loss_image = NCC().loss(target, x_aligned) #criterion (target, x_aligned) #NCC().loss(target, x_aligned) #criterion (target, x_aligned)# #rmi_loss(x_aligned, target) 
-            disp, deformed = diff_net(x_aligned, target,  registration = True)
-            Reg = Grad( penalty= 'l2')
-            loss_reg = Reg.loss(disp)
-            loss_dist_deform = NCC().loss(target, deformed)
-            loss_val = loss_image + .5*loss_dist_deform + .5*loss_reg #+ shape_val + dice_val #loss_val + + def_weight*loss_dist_deform + def_weight*loss_reg
+            loss_image = NCC().loss(target, x_aligned) + criterion (tar_lb, x_aligned_lb) #criterion (target, x_aligned) #NCC().loss(target, x_aligned) #criterion (target, x_aligned)# #rmi_loss(x_aligned, target) 
+            phiinv_bch = torch.zeros(b, IMG_SIZE[0], IMG_SIZE[1], IMG_SIZE[2], 3).to(dev)
+            reg_save = torch.zeros(b, IMG_SIZE[0], IMG_SIZE[1], IMG_SIZE[2], 3).to(dev)
+            if (para.model.shooting == "SVF"):
+                disp, deformed, temp = diff_net(x_aligned, target,  registration = True)
+                disp_lbl,deformed_lbl, temp = diff_net(x_aligned_lb, tar_lb, registration = True)
+                Reg = Grad( penalty= 'l2')
+                loss_reg = Reg.loss(disp)
+                loss_reg_lbl = Reg.loss (disp_lbl)
+                loss_dist_deform = NCC().loss(target, deformed)
+                loss_dist_deform_lbl = criterion (tar_lb, deformed_lbl)
+                loss_val = loss_image + .5*loss_dist_deform + .5*loss_reg + .5*loss_dist_deform_lbl + .5*loss_reg_lbl #+ shape_val + dice_val #loss_val + + def_weight*loss_dist_deform + def_weight*loss_reg
+            
+            if (para.model.shooting == "FLDDMM"):
+                disp, deformed, momentum= diff_net(x_aligned, target,  registration = True)
+                momentum = momentum.permute(0, 4, 3, 2, 1)
+                identity = get_grid2(IMG_SIZE[0], dev).permute([0, 4, 3, 2, 1])  
+                epd = Epdiff(dev, (para.model.reduced_xDim, para.model.reduced_yDim, para.model.reduced_zDim), (IMG_SIZE[0], IMG_SIZE[1], IMG_SIZE[2]), para.solver.Alpha, para.solver.Gamma, para.solver.Lpow)
+
+                for b_id in range(b):
+                    v_fourier = epd.spatial2fourier(momentum[b_id,...].reshape(IMG_SIZE[0], IMG_SIZE[1], IMG_SIZE[2], 3))
+                    velocity = epd.fourier2spatial(epd.Kcoeff * v_fourier).reshape(IMG_SIZE[0], IMG_SIZE[1], IMG_SIZE[2], 3)  
+                    # sitk.WriteImage(sitk.GetImageFromArray(velocity.detach().cpu().numpy()), "./Velocity0.nii.gz")
+                    reg_temp = epd.fourier2spatial(epd.Lcoeff * v_fourier * v_fourier)
+                    num_steps = para.solver.Euler_steps
+                    v_seq, displacement = epd.forward_shooting_v_and_phiinv(velocity, num_steps)  
+                    phiinv = displacement.unsqueeze(0) + identity
+                    phiinv_bch[b_id,...] = phiinv 
+                    reg_save[b_id,...] = reg_temp
+
+                dfm = Torchinterp(x_aligned,phiinv_bch) 
+                Dist = criterion(dfm, target)
+                Reg_loss =  reg_save.sum()
+
+                pred = diff_net(x_aligned, target,  registration = True)
+                momentum = pred[2].permute(0, 4, 3, 2, 1)
+    
+                phiinv_bch_lbl = torch.zeros(b, IMG_SIZE[0], IMG_SIZE[1], IMG_SIZE[2], 3).to(dev)
+                reg_save_lbl = torch.zeros(b, IMG_SIZE[0], IMG_SIZE[1], IMG_SIZE[2], 3).to(dev)
+                for b_id in range(b):
+                    v_fourier = epd.spatial2fourier(momentum[b_id,...].reshape(IMG_SIZE[0], IMG_SIZE[1], IMG_SIZE[2], 3))
+                    velocity = epd.fourier2spatial(epd.Kcoeff * v_fourier).reshape(IMG_SIZE[0], IMG_SIZE[1], IMG_SIZE[2], 3)  
+                    # sitk.WriteImage(sitk.GetImageFromArray(velocity.detach().cpu().numpy()), "./Velocity0.nii.gz")
+                    reg_temp = epd.fourier2spatial(epd.Lcoeff * v_fourier * v_fourier)
+                    num_steps = para.solver.Euler_steps
+                    v_seq, displacement = epd.forward_shooting_v_and_phiinv(velocity, num_steps)  
+                    phiinv_lbl = displacement.unsqueeze(0) + identity
+                    phiinv_bch_lbl[b_id,...] = phiinv_lbl 
+                    reg_save_lbl[b_id,...] = reg_temp
+
+                dfm_lbl = Torchinterp(x_aligned_lb,phiinv_bch_lbl) 
+                Dist_lbl = criterion(dfm_lbl, tar_lb)
+                Reg_loss_lbl =  reg_save_lbl.sum()
+
+                loss_val = loss_image + Dist + para.solver.def_weight* Reg_loss + Dist_lbl + para.solver.def_weight* Reg_loss_lbl
         else: 
             image_loss = NCC().loss(target, x_aligned) + criterion (tar_lb, x_aligned_lb)
             loss_val = image_loss 
@@ -199,6 +249,16 @@ for epoch in range(para.solver.epochs):
         saved= sitk.GetImageFromArray(np.array(x_aligned[0,0,:,:,:].detach().cpu()))
         save_name = './check_result/rigid_' + str(epoch) + '_'+ str(idx) + '.nii.gz'
         sitk.WriteImage(saved, save_name)
+
+        velo = disp[0,...].reshape(3, 96, 96,96).permute(1, 2, 3, 0)
+        velo = velo.detach().cpu().numpy()
+        save_path = f'./check_result/velo_im_{epoch}_{idx}.nii.gz'
+        sitk.WriteImage(sitk.GetImageFromArray(velo, isVector=True), save_path, False)
+
+        velo = disp_lbl[0,...].reshape(3, 96, 96,96).permute(1, 2, 3, 0)
+        velo = velo.detach().cpu().numpy()
+        save_path = f'./check_result/velo_lbl_{epoch}_{idx}.nii.gz'
+        sitk.WriteImage(sitk.GetImageFromArray(velo, isVector=True), save_path, False)
         print ("batch loss", loss_val.item())
     print ("training loss:", total)  
     """ @@@@@@@@@@@@@@ Save the trained model@@@@@@@@@@@@@@ """

@@ -13,9 +13,9 @@ class SitkDataset(Dataset):
     def __len__(self):
         # return 200
         if (self.keyword == "train"):
-            return len(self.data_info[self.keyword])
+            return 1 #len(self.data_info[self.keyword])
         if (self.keyword == "test"):
-            return len(self.data_info[self.keyword])
+            return 1 #len(self.data_info[self.keyword])
         if (self.keyword == "all2one"):
             return len(self.data_info[self.keyword])
     def __getitem__(self, idx):
