@@ -1,10 +1,10 @@
-# UniMo: Universal Motion Correction For Medical Images without Network Retraining
+# UniMo: Unified Motion Correction For Medical Images without Network Retraining
 
 **Jian Wang, Razieh Faghihpirayesh, Danny Joca, Polina Golland, Ali Gholipour**
 
 ## Highlights
 
-- **Motion Correction Framework:** UniMo, a Universal Motion Correction framework using deep neural networks for diverse imaging modalities.
+- **Motion Correction Framework:** UniMo, a Unified Motion Correction framework using deep neural networks for large rigid and non-rigid motion.
 - **One-Time Training:** UniMo requires only one-time training on a single modality and maintains high stability and adaptability across multiple unseen image modalities.
 - **Joint Learning Framework:** Integrates multimodal knowledge from both shape and images to improve motion correction accuracy despite image appearance changes.
 - **Geometric Deformation Augmenter:** Features a geometric deformation augmenter that enhances global motion correction by addressing local deformations and generating augmented data to improve training.
